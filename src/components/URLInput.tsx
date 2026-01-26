@@ -1,89 +1,80 @@
 import { useState } from 'react';
-import { Link, Search, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Link, Check, Copy } from 'lucide-react';
 
-interface URLInputProps {
-  onSubmit: (url: string) => void;
-}
-
-export const URLInput = ({ onSubmit }: URLInputProps) => {
+export function URLInput({ onSubmit }: { onSubmit?: (url: string) => void }) {
   const [url, setUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!url.trim()) {
-      setError('Please enter a product URL');
-      return;
+    if (url.trim()) {
+      onSubmit?.(url.trim());
+      setSubmitted(true);
     }
-
-    try {
-      new URL(url);
-    } catch {
-      setError('Please enter a valid URL');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    // Simulate URL processing
-    setTimeout(() => {
-      setIsLoading(false);
-      onSubmit(url);
-      setUrl('');
-    }, 1500);
   };
 
-  const handleDemoURL = () => {
-    const demoUrl = 'https://www.sephora.hk/products/sk-ii-facial-treatment-essence';
-    setUrl(demoUrl);
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onSubmit(demoUrl);
-      setUrl('');
-    }, 1500);
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(url);
   };
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        <div>
-          <h3 className="font-semibold mb-1">Paste Product URL</h3>
-          <p className="text-sm text-muted-foreground">From Sephora, Watsons, or any beauty retailer</p>
+    <div className="w-full max-w-md mx-auto p-6 bg-background rounded-lg border shadow-sm">
+      <div className="text-center mb-6">
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Link className="w-10 h-10 text-white" />
         </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Product URL</h3>
+        <p className="text-sm text-muted-foreground">Enter image URL from any website</p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input 
-            type="url"
-            placeholder="https://example.com/product"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
+      {submitted ? (
+        <div className="space-y-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-emerald-600" />
+            </div>
+            <p className="text-foreground font-semibold text-lg mb-2 truncate max-w-full">{url}</p>
+            <p className="text-sm text-emerald-700">URL submitted successfully!</p>
+          </div>
+          <button
+            onClick={() => {
+              setSubmitted(false);
+              setUrl('');
+            }}
+            className="w-full h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent flex items-center justify-center gap-2"
+          >
+            Add Another URL
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com/product-image.jpg"
+              className="w-full px-4 py-3 border border-input rounded-xl bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 h-14"
+              required
+            />
+            <button
+              type="button"
+              onClick={copyToClipboard}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-accent rounded-lg"
+              title="Copy URL"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+          <button
+            type="submit"
+            className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <Link className="w-5 h-5" />
+            Analyze URL
+          </button>
         </form>
-
-        {error && (
-          <p className="text-destructive text-sm">{error}</p>
-        )}
-
-        <Button variant="outline" onClick={handleDemoURL} className="w-full" disabled={isLoading}>
-          Try demo: SK-II Facial Treatment Essence
-        </Button>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
-};
+}
