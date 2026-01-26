@@ -1,0 +1,269 @@
+import { TrendingUp, Leaf, RefreshCw, DollarSign, Star, Award, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+} from 'recharts';
+
+interface ProductAnalysis {
+  product: {
+    name: string;
+    brand: string;
+    price: number;
+    currency: string;
+    size: string;
+    image?: string;
+  };
+  cpur: {
+    value: number;
+    uses: number;
+    lifespan: string;
+    comparison: string;
+  };
+  esg: {
+    environment: { score: number; label: string };
+    social: { score: number; label: string };
+    governance: { score: number; label: string };
+    overall: number;
+  };
+  resale: {
+    percentage: number;
+    estimatedValue: number;
+    timeframe: string;
+    platforms: string[];
+  };
+  verdict: {
+    score: number;
+    recommendation: string;
+    highlights: string[];
+  };
+}
+
+interface ResultsCardProps {
+  data: ProductAnalysis;
+  onReset: () => void;
+}
+
+export const ResultsCard = ({ data, onReset }: ResultsCardProps) => {
+  const cpurChartData = [
+    { name: 'This Product', value: data.cpur.value, fill: 'hsl(var(--primary))' },
+    { name: 'Category Avg', value: data.cpur.value * 1.3, fill: 'hsl(var(--muted))' },
+  ];
+
+  const esgData = [
+    { name: 'E', value: data.esg.environment.score, fill: 'hsl(142, 70%, 45%)' },
+    { name: 'S', value: data.esg.social.score, fill: 'hsl(200, 70%, 50%)' },
+    { name: 'G', value: data.esg.governance.score, fill: 'hsl(270, 60%, 55%)' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Product Header */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-4">
+          <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center">
+            {data.product.image ? (
+              <img src={data.product.image} alt={data.product.name} className="h-full w-full object-cover rounded-lg" />
+            ) : (
+              <Star className="h-10 w-10 text-muted-foreground" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{data.product.brand}</p>
+            <h3 className="font-semibold">{data.product.name}</h3>
+            <p className="text-sm text-muted-foreground">{data.product.size}</p>
+            <p className="font-bold text-primary">
+              {data.product.currency}{data.product.price.toLocaleString()}
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Verdict Score */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">True Value Score</h3>
+          </div>
+          <Badge variant="secondary" className="text-lg font-bold">
+            {data.verdict.score}/100
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          <p className="font-medium mb-4">
+            {data.verdict.recommendation}
+          </p>
+          <ul className="space-y-2">
+            {data.verdict.highlights.map((highlight, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm">
+                <ArrowRight className="h-4 w-4 text-success" /> {highlight}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* CPUR Analysis */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          <CardTitle>Cost Per Use Analysis</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-primary">
+                ${data.cpur.value}
+              </p>
+              <p className="text-xs text-muted-foreground">Per Use</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{data.cpur.uses}</p>
+              <p className="text-xs text-muted-foreground">Est. Uses</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{data.cpur.lifespan}</p>
+              <p className="text-xs text-muted-foreground">Lifespan</p>
+            </div>
+          </div>
+          <div className="h-32">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={cpurChartData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis hide />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {cpurChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-sm text-center text-muted-foreground">
+            {data.cpur.comparison}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ESG Ratings */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2">
+          <Leaf className="h-5 w-5 text-success" />
+          <CardTitle>ESG Sustainability Score</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-32">
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={esgData}
+                    innerRadius={40}
+                    outerRadius={60}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {esgData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-green-500" />
+                  Environment
+                </span>
+                {data.esg.environment.label}
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-blue-500" />
+                  Social
+                </span>
+                {data.esg.social.label}
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-purple-500" />
+                  Governance
+                </span>
+                {data.esg.governance.label}
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">
+              Overall ESG Rating
+            </p>
+            <Progress value={data.esg.overall} className="h-2" />
+            <p className="text-right text-sm font-medium mt-1">
+              {data.esg.overall}%
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Resale Value */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2">
+          <RefreshCw className="h-5 w-5 text-accent" />
+          <CardTitle>Resale Potential</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Estimated Resale Value</p>
+            <p className="text-2xl font-bold text-accent">
+              {data.product.currency}{data.resale.estimatedValue.toLocaleString()}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 text-center">
+            <div>
+              <p className="text-lg font-bold text-success">
+                {data.resale.percentage}% retained
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">After {data.resale.timeframe}</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium mb-2">Recommended Platforms</p>
+            <div className="flex flex-wrap gap-2">
+              {data.resale.platforms.map((platform, i) => (
+                <Badge key={i} variant="secondary">{platform}</Badge>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <Button variant="outline" onClick={onReset}>
+          <Scan className="mr-2 h-4 w-4" /> Scan Another
+        </Button>
+        <Button>
+          <DollarSign className="mr-2 h-4 w-4" /> Save Analysis
+        </Button>
+      </div>
+
+      {/* Privacy Notice */}
+      <p className="text-center text-xs text-muted-foreground">
+        🔒 Your data is processed locally. PDPO-compliant.
+      </p>
+    </div>
+  );
+};
