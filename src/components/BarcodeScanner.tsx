@@ -1,46 +1,44 @@
 import { useState, useCallback } from 'react';
 import { Camera, Zap, Square } from 'lucide-react';
 
-export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) {
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState('');
-  const [hasPermission, setHasPermission] = useState(false);
+interface BarcodeScannerProps {
+  onScan?: (code: string) => void;
+}
 
-  // Request camera permission and mock scan for demo
+export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanResult, setScanResult] = useState<string>('');
+  const [hasPermission, setHasPermission] = useState<boolean>(false);
+
   const startScan = useCallback(async () => {
     try {
-      // Check camera permission (for real browser scanner)
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      stream.getTracks().forEach(track => track.stop());
-      setHasPermission(true);
+      // Demo mode for Codespaces/iPad - no real camera needed
+      console.log('True Value Scanner: Demo mode active');
       
-      // Demo: Generate mock UPC barcode
-      const mockCodes = [
-        '0123456789052', // UPC-A example
-        '1234567890123',
-        '4901234567894'
+      const mockCodes: string[] = [
+        '0123456789052', // UPC-A Milk
+        '1234567890123', // UPC-A Cereal  
+        '4901234567894'  // EAN-13 Example
       ];
+      
       const randomCode = mockCodes[Math.floor(Math.random() * mockCodes.length)];
       
+      setIsScanning(true);
       setTimeout(() => {
         setScanResult(randomCode);
         setIsScanning(false);
         onScan?.(randomCode);
       }, 1500);
       
-      setIsScanning(true);
-    } catch (err) {
-      // Fallback demo without camera
-      console.log('Camera access denied, using demo mode');
+    } catch (error) {
+      console.log('Demo scanner fallback');
       const randomCode = '0123456789052';
+      setIsScanning(true);
       setTimeout(() => {
         setScanResult(randomCode);
         setIsScanning(false);
         onScan?.(randomCode);
       }, 1000);
-      setIsScanning(true);
     }
   }, [onScan]);
 
@@ -56,9 +54,7 @@ export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) 
           {isScanning ? <Zap className="w-10 h-10 text-white animate-pulse" /> : <Camera className="w-10 h-10 text-white" />}
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-2">Scan Product Barcode</h3>
-        <p className="text-sm text-muted-foreground">
-          {hasPermission ? 'Point at barcode' : 'Tap to scan'}
-        </p>
+        <p className="text-sm text-muted-foreground">Tap to scan (Demo Mode)</p>
       </div>
 
       {isScanning ? (
@@ -68,25 +64,16 @@ export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) 
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-3/4 h-1 bg-green-400 rounded-full animate-[scan_2s_infinite]"></div>
               </div>
-              <style jsx>{`
-                @keyframes scan {
-                  0% { transform: translateY(-100%); }
-                  100% { transform: translateY(100%); }
-                }
-              `}</style>
             </div>
             <p className="text-center mt-3 text-sm font-medium text-green-600">Scanning...</p>
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={resetScan}
-              className="flex-1 h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
-            >
-              <Square className="w-4 h-4 mr-2 inline" />
-              Cancel
-            </button>
-          </div>
+          <button
+            onClick={resetScan}
+            className="flex-1 h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
+          >
+            <Square className="w-4 h-4 mr-2 inline" />
+            Cancel
+          </button>
         </div>
       ) : scanResult ? (
         <div className="space-y-4">
@@ -95,17 +82,14 @@ export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) 
               <Zap className="w-8 h-8 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-800 mb-1 tracking-wide">{scanResult}</p>
-            <p className="text-sm text-green-700">Barcode scanned successfully!</p>
+            <p className="text-sm text-green-700">Scanned successfully!</p>
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={resetScan}
-              className="flex-1 h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
-            >
-              Scan Again
-            </button>
-          </div>
+          <button
+            onClick={resetScan}
+            className="w-full h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
+          >
+            Scan Again
+          </button>
         </div>
       ) : (
         <button
