@@ -1,94 +1,88 @@
-import { useState, useCallback } from 'react';
-import { Upload, Image as ImageIcon, X, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { Upload, Image, CheckCircle } from 'lucide-react';
 
-interface ImageUploaderProps {
-  onUpload: (imageData: string) => void;
-}
+export function ImageUploader({ onUpload }: { onUpload?: (file: File) => void }) {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
 
-export const ImageUploader = ({ onUpload }: ImageUploaderProps) => {
-  const [preview, setPreview] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const processImage = useCallback(async (file: File) => {
-    setIsProcessing(true);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setPreview(dataUrl);
-      
-      // Simulate AI processing delay
-      setTimeout(() => {
-        setIsProcessing(false);
-        onUpload(dataUrl);
-      }, 1500);
-    };
-    reader.readAsDataURL(file);
-  }, [onUpload]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    setDragActive(false);
     
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      processImage(file);
-    }
-  }, [processImage]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processImage(file);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type.startsWith('image/')) {
+      setFile(droppedFile);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage(e.target?.result as string);
+        onUpload?.(droppedFile);
+      };
+      reader.readAsDataURL(droppedFile);
     }
   };
 
-  const clearPreview = () => {
-    setPreview(null);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile && selectedFile.type.startsWith('image/')) {
+      setFile(selectedFile);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage(e.target?.result as string);
+        onUpload?.(selectedFile);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
   };
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        {!preview ? (
-          <label 
-            className={`flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-              isDragging ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary'
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-          >
-            <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-            <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Upload className="h-8 w-8 text-muted-foreground" />
+    <div className="w-full max-w-md mx-auto p-6 bg-background rounded-lg border shadow-sm">
+      <div className="text-center mb-6">
+        <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Image className="w-10 h-10 text-white" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Upload Product Image</h3>
+        <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
+      </div>
+
+      {uploadedImage ? (
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-1">Upload Product Image</h3>
-              <p className="text-sm text-muted-foreground mb-2">Drag & drop or tap to select</p>
-              <p className="text-xs text-muted-foreground">Supports JPG, PNG, WEBP</p>
-            </div>
-          </label>
-        ) : (
-          <div className="relative">
-            <img src={preview} alt="Preview" className="w-full h-64 object-contain rounded-lg" />
-            {isProcessing && (
-              <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center rounded-lg">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <p className="text-sm font-medium">Analyzing image...</p>
-              </div>
-            )}
-            {!isProcessing && (
-              <Button variant="destructive" size="icon" className="absolute top-2 right-2" onClick={clearPreview}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+            <img src={uploadedImage} alt="Uploaded" className="w-32 h-32 object-cover rounded-xl mx-auto mb-2 shadow-md" />
+            <p className="text-sm text-green-700 font-medium">Image uploaded successfully!</p>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : (
+        <div 
+          className={`relative p-8 border-2 border-dashed rounded-2xl transition-all duration-200 ${
+            dragActive 
+              ? 'border-blue-400 bg-blue-50 shadow-lg scale-105' 
+              : 'border-muted hover:border-primary/50'
+          }`}
+          onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <div className="text-center">
+            <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-lg font-medium mb-1">Drop your image here</p>
+            <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+            <span className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-xs font-medium cursor-pointer hover:bg-primary/90">
+              Choose File
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   );
-};
+}
