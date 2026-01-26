@@ -1,18 +1,28 @@
 import { useState } from 'react';
 import { Camera, Zap } from 'lucide-react';
 
-export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) {
+// 1. 明確定義介面
+interface BarcodeScannerProps {
+  onScan?: (code: string) => void;
+}
+
+// 2. 使用 React.FC 或直接在參數處標註類型
+export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState('');
 
   const startScan = () => {
     setIsScanning(true);
-    // Demo only - no camera, no MediaStream
+    
     setTimeout(() => {
       const code = '0123456789052';
       setScanResult(code);
       setIsScanning(false);
-      if (onScan) onScan(code);
+      
+      // 3. 呼叫前進行安全檢查
+      if (onScan) {
+        onScan(code);
+      }
     }, 1500);
   };
 
@@ -21,6 +31,7 @@ export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) 
     setIsScanning(false);
   };
 
+  // ... 其餘 UI 邏輯保持不變 ...
   if (isScanning) {
     return (
       <div className="p-6 text-center">
@@ -58,7 +69,7 @@ export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) 
       <h3 className="text-lg font-semibold mb-2">Scan Product Barcode</h3>
       <p className="text-gray-500 text-sm mb-6">Click to test scanner</p>
       <button 
-        onClick={startScan}
+        onClick={startScan} 
         className="w-full max-w-sm px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700"
       >
         Start Scanning
