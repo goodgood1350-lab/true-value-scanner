@@ -1,121 +1,123 @@
-import { useState, useCallback } from 'react';
-import { Camera, Zap, Square } from 'lucide-react';
+// src/components/BarcodeScanner.tsx
+import { useState, useRef, useCallback } from 'react';
+import { Camera, X, Scan, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export function BarcodeScanner({ onScan }: { onScan?: (code: string) => void }) {
+interface BarcodeScannerProps {
+  onScan: (barcode: string) => void;
+}
+
+export const BarcodeScanner = ({ onScan }: BarcodeScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState('');
-  const [hasPermission, setHasPermission] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  // Request camera permission and mock scan for demo
-  const startScan = useCallback(async () => {
+  const startScanning = useCallback(async () => {
+    setError(null);
     try {
-      // Check camera permission (for real browser scanner)
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       });
-      stream.getTracks().forEach(track => track.stop());
-      setHasPermission(true);
-      
-      // Demo: Generate mock UPC barcode
-      const mockCodes = [
-        '0123456789052', // UPC-A example
-        '1234567890123',
-        '4901234567894'
-      ];
-      const randomCode = mockCodes[Math.floor(Math.random() * mockCodes.length)];
-      
-      setTimeout(() => {
-        setScanResult(randomCode);
-        setIsScanning(false);
-        onScan?.(randomCode);
-      }, 1500);
-      
-      setIsScanning(true);
-    } catch (err) {
-      // Fallback demo without camera
-      console.log('Camera access denied, using demo mode');
-      const randomCode = '0123456789052';
-      setTimeout(() => {
-        setScanResult(randomCode);
-        setIsScanning(false);
-        onScan?.(randomCode);
-      }, 1000);
-      setIsScanning(true);
-    }
-  }, [onScan]);
 
-  const resetScan = () => {
-    setScanResult('');
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // 安全存取：確保 streamRef.current 不為 null 再賦值
+        streamRef.current = stream;
+        setIsScanning(true);
+      }
+    } catch (err: any) {
+      setError('相機存取被拒絕，請在瀏覽器設定中允許相機權限。');
+      console.error('相機錯誤:', err);
+    }
+  }, []);
+
+  const stopScanning = useCallback(() => {
+    if (streamRef.current) {
+      // 安全停止所有軌道
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsScanning(false);
+  }, []);
+
+  const handleDemoScan = () => {
+    // 模擬 SK-II 條碼
+    const demoCode = '4967819220014';
+    onScan(demoCode);
+    stopScanning();
   };
 
-  return (
-    <div className="w-full max-w-md mx-auto p-6 bg-background rounded-lg border shadow-sm">
-      <div className="text-center mb-6">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          {isScanning ? <Zap className="w-10 h-10 text-white animate-pulse" /> : <Camera className="w-10 h-10 text-white" />}
-        </div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">Scan Product Barcode</h3>
-        <p className="text-sm text-muted-foreground">
-          {hasPermission ? 'Point at barcode' : 'Tap to scan'}
-        </p>
-      </div>
+  // 清理效果：組件卸載時停止相機
+  useCallback(() => {
+    return () => {
+      stopScanning();
+    };
+  }, [stopScanning]);
 
-      {isScanning ? (
-        <div className="space-y-4">
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        {!isScanning ? (
+          <div className="text-center space-y-6">
+            <div className="mx-auto h-32 w-32 rounded-full bg-muted flex items-center justify-center">
+              <Camera className="h-16 w-16 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">掃描條碼</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                將相機對準產品條碼
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Button onClick={startScanning} className="w-full" size="lg">
+                <Scan className="mr-2 h-5 w-5" /> 開始掃描
+              </Button>
+              <Button variant="outline" onClick={handleDemoScan} className="w-full">
+                使用 Demo 條碼（SK-II）
+              </Button>
+            </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>錯誤</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+        ) : (
           <div className="relative">
-            <div className="w-full h-64 bg-gradient-to-b from-green-500/10 to-transparent rounded-xl border-4 border-dashed border-green-400 animate-pulse">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-3/4 h-1 bg-green-400 rounded-full animate-[scan_2s_infinite]"></div>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full rounded-lg aspect-video bg-black"
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+              <div className="w-3/4 h-1 bg-white/50 relative overflow-hidden rounded-full">
+                <div className="absolute inset-0 bg-white animate-scan" />
               </div>
-              <style jsx>{`
-                @keyframes scan {
-                  0% { transform: translateY(-100%); }
-                  100% { transform: translateY(100%); }
-                }
-              `}</style>
+              <p className="mt-4 text-white font-medium">掃描中...</p>
             </div>
-            <p className="text-center mt-3 text-sm font-medium text-green-600">Scanning...</p>
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={resetScan}
-              className="flex-1 h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
-            >
-              <Square className="w-4 h-4 mr-2 inline" />
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : scanResult ? (
-        <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Zap className="w-8 h-8 text-green-600" />
+            <div className="absolute top-4 right-4">
+              <Button variant="destructive" size="icon" onClick={stopScanning}>
+                <X className="h-5 w-5" />
+              </Button>
             </div>
-            <p className="text-2xl font-bold text-green-800 mb-1 tracking-wide">{scanResult}</p>
-            <p className="text-sm text-green-700">Barcode scanned successfully!</p>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <Button variant="secondary" onClick={handleDemoScan}>
+                使用 Demo 條碼
+              </Button>
+            </div>
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={resetScan}
-              className="flex-1 h-12 bg-background border rounded-xl text-sm font-medium hover:bg-accent"
-            >
-              Scan Again
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={startScan}
-          className="w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <Camera className="w-5 h-5" />
-          Start Scanning
-        </button>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
