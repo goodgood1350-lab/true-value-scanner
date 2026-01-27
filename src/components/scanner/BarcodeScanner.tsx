@@ -1,5 +1,5 @@
 // src/components/BarcodeScanner.tsx
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, X, Scan, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,17 +14,28 @@ export const BarcodeScanner = ({ onScan }: BarcodeScannerProps) => {
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<BarcodeDetector | null>(null);
 
   const startScanning = useCallback(async () => {
     setError(null);
     try {
+      if (!('BarcodeDetector' in window)) {
+        setError('此瀏覽器不支援條碼偵測。請使用最新版 Chrome 或 Edge。');
+        return;
+      }
+
+      if (!detectorRef.current) {
+        detectorRef.current = new BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128', 'itf'],
+        });
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // 安全存取：確保 streamRef.current 不為 null 再賦值
         streamRef.current = stream;
         setIsScanning(true);
       }
@@ -36,7 +47,6 @@ export const BarcodeScanner = ({ onScan }: BarcodeScannerProps) => {
 
   const stopScanning = useCallback(() => {
     if (streamRef.current) {
-      // 安全停止所有軌道
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
@@ -46,6 +56,32 @@ export const BarcodeScanner = ({ onScan }: BarcodeScannerProps) => {
     setIsScanning(false);
   }, []);
 
+  const detectBarcode = useCallback(() => {
+    if (!isScanning || !videoRef.current || !detectorRef.current) return;
+
+    if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(detectBarcode);
+      return;
+    }
+
+    createImageBitmap(videoRef.current)
+      .then((image) => {
+        return detectorRef.current!.detect(image);
+      })
+      .then((barcodes) => {
+        if (barcodes.length > 0) {
+          onScan(barcodes[0].rawValue);
+          stopScanning();
+        } else {
+          requestAnimationFrame(detectBarcode);
+        }
+      })
+      .catch((err) => {
+        console.error('Detection error:', err);
+        requestAnimationFrame(detectBarcode);
+      });
+  }, [isScanning, onScan, stopScanning]);
+
   const handleDemoScan = () => {
     // 模擬 SK-II 條碼
     const demoCode = '4967819220014';
@@ -53,8 +89,15 @@ export const BarcodeScanner = ({ onScan }: BarcodeScannerProps) => {
     stopScanning();
   };
 
+  // 開始偵測當掃描啟動時
+  useEffect(() => {
+    if (isScanning) {
+      detectBarcode();
+    }
+  }, [isScanning, detectBarcode]);
+
   // 清理效果：組件卸載時停止相機
-  useCallback(() => {
+  useEffect(() => {
     return () => {
       stopScanning();
     };
