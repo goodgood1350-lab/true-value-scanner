@@ -1,7 +1,30 @@
-import { Sparkles } from 'lucide-react';
-import { InputTabs } from './components/scanner/InputTabs';
+import React, { useState } from 'react';
+import { Sparkles, Scan, Upload, Link as LinkIcon } from 'lucide-react';
+import { BarcodeScanner } from './components/scanner/BarcodeScanner';
+import { ImageUploader } from './components/scanner/ImageUploader';
+import { URLInput } from './components/scanner/URLInput';
+import { ResultsCard } from './components/ResultsCard';
+import { useProductAnalysis } from './hooks/useProductAnalysis';
 
-const Index = () => {
+const Index: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'scan' | 'upload' | 'url'>('scan');
+  const { analysis, isLoading, error, analyze, reset } = useProductAnalysis();
+
+  const handleBarcodeScan = (barcode: string) => {
+    analyze(barcode, 'barcode');
+  };
+
+  const handleImageUpload = (file?: File) => {
+    // For demo hook we pass the filename; replace with actual file upload or base64 if your backend requires it.
+    if (!file) return;
+    analyze(file.name, 'image');
+  };
+
+  const handleUrlSubmit = (url?: string) => {
+    if (!url) return;
+    analyze(url, 'url');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       {/* Header */}
@@ -15,50 +38,89 @@ const Index = () => {
         <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
           Smart beauty product analysis for Hong Kong shoppers 🇭🇰
         </p>
-        <p className="text-lg text-indigo-600 font-semibold mt-2">
-          Scan → Analyze → Save
-        </p>
+        <p className="text-lg text-indigo-600 font-semibold mt-2">Scan → Analyze → Save</p>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto">
-        {/* Feature Highlights */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="text-center p-6 bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-indigo-100 hover:shadow-2xl transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">💰</span>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Cost Per Use</h3>
-            <p className="text-gray-600">Real value beyond the price tag</p>
-          </div>
-          
-          <div className="text-center p-6 bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-indigo-100 hover:shadow-2xl transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">🌿</span>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Clean Ingredients</h3>
-            <p className="text-gray-600">Health & safety analysis</p>
-          </div>
-          
-          <div className="text-center p-6 bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-indigo-100 hover:shadow-2xl transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">📈</span>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Resale Value</h3>
-            <p className="text-gray-600">Second-hand market prices</p>
-          </div>
-        </div>
+      <main className="max-w-4xl mx-auto space-y-8">
+        {/* Tabs */}
+        {!analysis && (
+          <div className="w-full bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveTab('scan')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition ${
+                    activeTab === 'scan'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                      : 'bg-white/50 text-gray-700 border'
+                  }`}
+                >
+                  <Scan className="w-4 h-4" /> Scan
+                </button>
 
-        {/* Scanner Interface */}
-        <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 md:p-12">
-          <InputTabs />
-        </div>
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition ${
+                    activeTab === 'upload'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+                      : 'bg-white/50 text-gray-700 border'
+                  }`}
+                >
+                  <Upload className="w-4 h-4" /> Upload
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('url')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition ${
+                    activeTab === 'url'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md'
+                      : 'bg-white/50 text-gray-700 border'
+                  }`}
+                >
+                  <LinkIcon className="w-4 h-4" /> URL
+                </button>
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                {isLoading ? 'Analyzing...' : error ? <span className="text-destructive">{error}</span> : 'Ready'}
+              </div>
+            </div>
+
+            {/* Active Panel */}
+            <div>
+              {activeTab === 'scan' && (
+                <div className="max-w-2xl mx-auto">
+                  <BarcodeScanner onScan={handleBarcodeScan} />
+                </div>
+              )}
+
+              {activeTab === 'upload' && (
+                <div className="max-w-2xl mx-auto">
+                  <ImageUploader onUpload={handleImageUpload} />
+                </div>
+              )}
+
+              {activeTab === 'url' && (
+                <div className="max-w-2xl mx-auto">
+                  <URLInput onSubmit={handleUrlSubmit} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Results */}
+        {analysis && (
+          <div className="w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 md:p-8">
+            <ResultsCard data={analysis} onReset={() => reset()} />
+          </div>
+        )}
 
         {/* Call to Action */}
-        <div className="text-center mt-16 p-8 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-3xl shadow-2xl">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to discover true value?</h2>
-          <p className="text-lg opacity-90 mb-6">Every scan makes you a smarter shopper</p>
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white/30 transition-all duration-300">
+        <div className="text-center mt-6 p-6 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-3xl shadow-2xl">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">Ready to discover true value?</h2>
+          <p className="text-lg opacity-90 mb-4">Every scan makes you a smarter shopper</p>
+          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-2xl font-semibold text-lg hover:bg-white/30 transition-all duration-300">
             <span>🇭🇰 Made for Hong Kong</span>
           </div>
         </div>
