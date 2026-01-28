@@ -1,0 +1,18 @@
+{
+  "name": "True-Value Scanner",
+  "short_name": "TrueValue",
+  "description": "AI-powered beauty product value analyzer - Calculate true cost per use, ESG ratings, and resale potential",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf2f8",
+  "theme_color": "#ec4899",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["shopping", "lifestyle", "utilities"]
+}
